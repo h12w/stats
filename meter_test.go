@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"strconv"
 	"testing"
 	"time"
 )
@@ -14,6 +15,7 @@ func TestMeter(t *testing.T) {
 	now := testTime
 	m := NewMeter(3)
 
+	start := testTime
 	{
 		m.Inc(now)
 		m.Inc(now.Add(-time.Second))
@@ -24,10 +26,7 @@ func TestMeter(t *testing.T) {
 		m.Inc(now.Add(2 * time.Second))
 		m.Inc(now.Add(2 * time.Second))
 		m.Inc(now.Add(2 * time.Second))
-		expected := `2006-01-02T03:04:05 1
-2006-01-02T03:04:06 2
-2006-01-02T03:04:07 3
-`
+		expected := "[" + strconv.Itoa(int(start.Unix())) + ",1,2,3]"
 		if expected != m.String() {
 			t.Fatalf("expect %s got %s", expected, m.String())
 		}
@@ -37,11 +36,9 @@ func TestMeter(t *testing.T) {
 	{
 		m.Inc(now)
 		m.Inc(now)
+		start = start.Add(time.Second)
 
-		expected := `2006-01-02T03:04:06 2
-2006-01-02T03:04:07 3
-2006-01-02T03:04:08 2
-`
+		expected := "[" + strconv.Itoa(int(start.Unix())) + ",2,3,2]"
 		if expected != m.String() {
 			t.Fatalf("expect %s got %s", expected, m.String())
 		}
@@ -50,14 +47,31 @@ func TestMeter(t *testing.T) {
 	now = now.Add(3 * time.Second)
 	{
 		m.Inc(now)
+		start = start.Add(3 * time.Second)
 
-		expected := `2006-01-02T03:04:09 0
-2006-01-02T03:04:10 0
-2006-01-02T03:04:11 1
-`
+		expected := "[" + strconv.Itoa(int(start.Unix())) + ",0,0,1]"
 		if expected != m.String() {
 			t.Fatalf("expect %s got %s", expected, m.String())
 		}
+	}
+}
+
+func TestMeterJSON(t *testing.T) {
+	m := NewMeter(3)
+	now := testTime
+	m.Add(now, 1)
+	m.Add(now.Add(time.Second), 2)
+	m.Add(now.Add(2*time.Second), 3)
+	m.Add(now.Add(3*time.Second), 4)
+
+	jsonBuf, err := m.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual := string(jsonBuf)
+	expected := "[" + strconv.Itoa(int(testTime.Add(time.Second).Unix())) + `,2,3,4]`
+	if actual != expected {
+		t.Fatalf("expect \n%s\n but got\n%s", expected, actual)
 	}
 }
 

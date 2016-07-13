@@ -2,7 +2,7 @@ package stats
 
 import (
 	"bytes"
-	"fmt"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -19,6 +19,10 @@ func NewMeter(bufSize int) *Meter {
 }
 
 func (m *Meter) Inc(t time.Time) {
+	m.Add(t, 1)
+}
+
+func (m *Meter) Add(t time.Time, value int) {
 	m.mu.Lock()
 	sec := int(t.Unix())
 	if m.startSec == 0 {
@@ -41,22 +45,31 @@ func (m *Meter) Inc(t time.Time) {
 	if pos >= len(m.a) {
 		pos -= len(m.a)
 	}
-	m.a[pos]++
+	m.a[pos] += value
 	m.mu.Unlock()
 }
 
-func (m *Meter) String() string {
+func (m *Meter) MarshalJSON() ([]byte, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	var buf bytes.Buffer
-	t := time.Unix(int64(m.startSec), 0).UTC()
-	for i := m.start; i < len(m.a); i++ {
-		fmt.Fprintf(&buf, "%s %d\n", t.Format("2006-01-02T15:04:05"), m.a[i])
-		t = t.Add(time.Second)
+	buf.WriteString("[")
+	buf.WriteString(strconv.Itoa(m.startSec))
+	buf.WriteByte(',')
+	buf.WriteString(strconv.Itoa(m.a[m.start]))
+	for i := m.start + 1; i < len(m.a); i++ {
+		buf.WriteByte(',')
+		buf.WriteString(strconv.Itoa(m.a[i]))
 	}
 	for i := 0; i < m.start; i++ {
-		fmt.Fprintf(&buf, "%s %d\n", t.Format("2006-01-02T15:04:05"), m.a[i])
-		t = t.Add(time.Second)
+		buf.WriteByte(',')
+		buf.WriteString(strconv.Itoa(m.a[i]))
 	}
-	return buf.String()
+	buf.WriteString("]")
+	return buf.Bytes(), nil
+}
+
+func (m *Meter) String() string {
+	buf, _ := m.MarshalJSON()
+	return string(buf)
 }
