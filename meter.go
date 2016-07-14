@@ -2,6 +2,7 @@ package stats
 
 import (
 	"bytes"
+	"encoding/json"
 	"strconv"
 	"sync"
 	"time"
@@ -54,19 +55,36 @@ func (m *Meter) MarshalJSON() ([]byte, error) {
 	defer m.mu.RUnlock()
 	var buf bytes.Buffer
 	buf.WriteString("[")
-	buf.WriteString(strconv.Itoa(m.startSec))
-	buf.WriteByte(',')
-	buf.WriteString(strconv.Itoa(m.a[m.start]))
-	for i := m.start + 1; i < len(m.a); i++ {
+	if len(m.a) > 0 {
+		buf.WriteString(strconv.Itoa(m.startSec))
 		buf.WriteByte(',')
-		buf.WriteString(strconv.Itoa(m.a[i]))
-	}
-	for i := 0; i < m.start; i++ {
-		buf.WriteByte(',')
-		buf.WriteString(strconv.Itoa(m.a[i]))
+		buf.WriteString(strconv.Itoa(m.a[m.start]))
+		for i := m.start + 1; i < len(m.a); i++ {
+			buf.WriteByte(',')
+			buf.WriteString(strconv.Itoa(m.a[i]))
+		}
+		for i := 0; i < m.start; i++ {
+			buf.WriteByte(',')
+			buf.WriteString(strconv.Itoa(m.a[i]))
+		}
 	}
 	buf.WriteString("]")
 	return buf.Bytes(), nil
+}
+
+func (m *Meter) UnmarshalJSON(data []byte) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var a []int
+	if err := json.Unmarshal(data, &a); err != nil {
+		return err
+	}
+	if len(a) == 0 {
+		return nil
+	}
+	m.startSec = a[0]
+	copy(m.a, a[1:])
+	return nil
 }
 
 func (m *Meter) String() string {

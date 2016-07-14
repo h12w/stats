@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"encoding/json"
 	"strconv"
 	"testing"
 	"time"
@@ -64,14 +65,29 @@ func TestMeterJSON(t *testing.T) {
 	m.Add(now.Add(2*time.Second), 3)
 	m.Add(now.Add(3*time.Second), 4)
 
-	jsonBuf, err := m.MarshalJSON()
+	jsonBuf, err := json.Marshal(m)
 	if err != nil {
 		t.Fatal(err)
 	}
-	actual := string(jsonBuf)
-	expected := "[" + strconv.Itoa(int(testTime.Add(time.Second).Unix())) + `,2,3,4]`
-	if actual != expected {
-		t.Fatalf("expect \n%s\n but got\n%s", expected, actual)
+	{
+		actual := string(jsonBuf)
+		expected := "[" + strconv.Itoa(int(testTime.Add(time.Second).Unix())) + `,2,3,4]`
+		if actual != expected {
+			t.Fatalf("expect \n%s\n but got\n%s", expected, actual)
+		}
+	}
+	{
+		m := NewMeter(3)
+		if err := json.Unmarshal(jsonBuf, &m); err != nil {
+			t.Fatal(err)
+		}
+		jsonBuf2, err := json.Marshal(&m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(jsonBuf2) != string(jsonBuf) {
+			t.Fatalf("expect %s but got %s", string(jsonBuf), string(jsonBuf2))
+		}
 	}
 }
 
