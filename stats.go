@@ -19,10 +19,14 @@ func New(bufSize int) *S {
 
 // Meter gets or creates a meter by name
 func (s *S) Meter(name string) *Meter {
+	s.mu.RLock()
 	m, ok := s.Meters[name]
+	s.mu.RUnlock()
 	if !ok {
 		m = NewMeter(s.bufSize)
+		s.mu.Lock()
 		s.Meters[name] = m
+		s.mu.Unlock()
 	}
 	return m
 }
