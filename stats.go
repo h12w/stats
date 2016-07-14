@@ -30,3 +30,11 @@ func (s *S) Meter(name string) *Meter {
 	}
 	return m
 }
+
+func (s *S) Merge(o *S) {
+	o.mu.RLock()
+	for name, meter := range o.Meters {
+		s.Meter(name).Merge(meter)
+	}
+	o.mu.RUnlock()
+}
