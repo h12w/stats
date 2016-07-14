@@ -12,7 +12,7 @@ var (
 	testTime, _ = time.Parse(testTimeStr, testTimeStr)
 )
 
-func TestMeter(t *testing.T) {
+func TestMeterInc(t *testing.T) {
 	now := testTime
 	m := NewMeter(3)
 
@@ -91,10 +91,45 @@ func TestMeterJSON(t *testing.T) {
 	}
 }
 
+func TestMeterMerge(t *testing.T) {
+	now := testTime
+
+	m1 := NewMeter(2)
+	m1.Add(now, 1)
+	m1.Add(now.Add(time.Second), 2)
+
+	{
+		m2 := NewMeter(2)
+		m2.Add(now.Add(time.Second), 3)
+		m2.Add(now.Add(2*time.Second), 4)
+
+		m2.Merge(m1)
+		expectedM2 := `[` + unixStr(now.Add(time.Second)) + `,5,4]`
+		if expectedM2 != m2.String() {
+			t.Fatalf("expect %s but got %s", expectedM2, m2.String())
+		}
+	}
+	{
+		m2 := NewMeter(2)
+		m2.Add(now.Add(-time.Second), 3)
+		m2.Add(now, 4)
+
+		m2.Merge(m1)
+		expectedM2 := `[` + unixStr(now) + `,5,2]`
+		if expectedM2 != m2.String() {
+			t.Fatalf("expect %s but got %s", expectedM2, m2.String())
+		}
+	}
+}
+
 func BenchmarkMeter(b *testing.B) {
 	m := NewMeter(600)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		m.Inc(time.Now())
 	}
+}
+
+func unixStr(t time.Time) string {
+	return strconv.Itoa(int(t.Unix()))
 }

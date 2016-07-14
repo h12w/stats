@@ -16,7 +16,9 @@ type Meter struct {
 }
 
 func NewMeter(bufSize int) *Meter {
-	return &Meter{a: make([]int, bufSize)}
+	return &Meter{
+		a: make([]int, bufSize),
+	}
 }
 
 func (m *Meter) Inc(t time.Time) {
@@ -25,7 +27,11 @@ func (m *Meter) Inc(t time.Time) {
 
 func (m *Meter) Add(t time.Time, value int) {
 	m.mu.Lock()
-	sec := int(t.Unix())
+	m.add(int(t.Unix()), value)
+	m.mu.Unlock()
+}
+
+func (m *Meter) add(sec, value int) {
 	if m.startSec == 0 {
 		m.startSec = sec
 	}
@@ -39,7 +45,6 @@ func (m *Meter) Add(t time.Time, value int) {
 	}
 	offset := sec - m.startSec
 	if offset < 0 {
-		m.mu.Unlock()
 		return // ignore data older than a circle
 	}
 	pos := m.start + offset
@@ -47,6 +52,25 @@ func (m *Meter) Add(t time.Time, value int) {
 		pos -= len(m.a)
 	}
 	m.a[pos] += value
+}
+
+func (m *Meter) get(sec int) int {
+	if sec < m.startSec || sec >= m.startSec+len(m.a) {
+		return 0
+	}
+	pos := m.start + sec - m.startSec
+	if pos >= len(m.a) {
+		pos -= len(m.a)
+	}
+	return m.a[pos]
+}
+
+func (m *Meter) Merge(o *Meter) {
+	m.mu.Lock()
+	for i := range o.a {
+		sec := o.startSec + i
+		m.add(sec, o.get(sec))
+	}
 	m.mu.Unlock()
 }
 
@@ -57,15 +81,13 @@ func (m *Meter) MarshalJSON() ([]byte, error) {
 	buf.WriteString("[")
 	if len(m.a) > 0 {
 		buf.WriteString(strconv.Itoa(m.startSec))
+		sec := m.startSec
 		buf.WriteByte(',')
-		buf.WriteString(strconv.Itoa(m.a[m.start]))
-		for i := m.start + 1; i < len(m.a); i++ {
+		buf.WriteString(strconv.Itoa(m.get(sec)))
+		for i := 1; i < len(m.a); i++ {
+			sec := m.startSec + i
 			buf.WriteByte(',')
-			buf.WriteString(strconv.Itoa(m.a[i]))
-		}
-		for i := 0; i < m.start; i++ {
-			buf.WriteByte(',')
-			buf.WriteString(strconv.Itoa(m.a[i]))
+			buf.WriteString(strconv.Itoa(m.get(sec)))
 		}
 	}
 	buf.WriteString("]")
