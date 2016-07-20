@@ -4,26 +4,27 @@ import "sync"
 
 // S is the container for all statistics
 type S struct {
-	Meters  map[string]*Meter `json:"meters"`
-	bufSize int               `json:"-"`
-	mu      sync.RWMutex      `json:"-"`
+	Meters         map[string]*Meter `json:"meters"`
+	defaultBufSize int               `json:"-"`
+	mu             sync.RWMutex      `json:"-"`
 }
 
 // New creates a new S
-func New(bufSize int) *S {
+func New() *S {
 	return &S{
-		Meters:  make(map[string]*Meter),
-		bufSize: bufSize,
+		Meters:         make(map[string]*Meter),
+		defaultBufSize: 60,
 	}
 }
 
 // Meter gets or creates a meter by name
 func (s *S) Meter(name string) *Meter {
 	s.mu.RLock()
+	defaultBufSize := s.defaultBufSize
 	m, ok := s.Meters[name]
 	s.mu.RUnlock()
 	if !ok {
-		m = NewMeter(s.bufSize)
+		m = NewMeter(defaultBufSize)
 		s.mu.Lock()
 		s.Meters[name] = m
 		s.mu.Unlock()
@@ -37,4 +38,11 @@ func (s *S) Merge(o *S) {
 		s.Meter(name).Merge(meter)
 	}
 	o.mu.RUnlock()
+}
+
+func (s *S) SetBufSize(defaultBufSize int) *S {
+	s.mu.Lock()
+	s.defaultBufSize = defaultBufSize
+	s.mu.Unlock()
+	return s
 }
