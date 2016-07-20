@@ -2,6 +2,9 @@ package statsutil
 
 import (
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"path"
 
@@ -26,11 +29,23 @@ func pullHandler(s *stats.S) http.Handler {
 		}
 		defer resp.Body.Close()
 		otherStats := stats.New()
-		if err := json.NewDecoder(resp.Body).Decode(otherStats); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		buf, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Fatal(err)
 		}
+		fmt.Println(string(buf))
+		if err := json.Unmarshal(buf, otherStats); err != nil {
+			log.Fatal(err)
+		}
+		/*
+			if err := json.NewDecoder(resp.Body).Decode(otherStats); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		*/
+		fmt.Println(otherStats)
 		s.Merge(otherStats)
+		fmt.Println(s)
 	})
 }
 

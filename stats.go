@@ -1,6 +1,9 @@
 package stats
 
-import "sync"
+import (
+	"encoding/json"
+	"sync"
+)
 
 // S is the container for all statistics
 type S struct {
@@ -45,4 +48,9 @@ func (s *S) SetBufSize(defaultBufSize int) *S {
 	s.defaultBufSize = defaultBufSize
 	s.mu.Unlock()
 	return s
+}
+
+func (s *S) String() string {
+	buf, _ := json.Marshal(s)
+	return string(buf)
 }

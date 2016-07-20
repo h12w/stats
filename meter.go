@@ -97,15 +97,19 @@ func (m *Meter) MarshalJSON() ([]byte, error) {
 func (m *Meter) UnmarshalJSON(data []byte) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	var a []int
-	if err := json.Unmarshal(data, &a); err != nil {
+	var ints []int
+	if err := json.Unmarshal(data, &ints); err != nil {
 		return err
 	}
-	if len(a) == 0 {
+	if len(ints) == 0 {
 		return nil
 	}
-	m.startSec = a[0]
-	copy(m.a, a[1:])
+	m.startSec = ints[0]
+	if len(m.a) >= len(ints)-1 {
+		copy(m.a, ints[1:])
+	} else {
+		m.a = ints[1:]
+	}
 	return nil
 }
 
