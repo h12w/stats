@@ -21,14 +21,17 @@ func NewMeter(bufSize int) *Meter {
 	}
 }
 
-func (m *Meter) Inc(t time.Time) {
-	m.Add(t, 1)
-}
-
-func (m *Meter) Add(t time.Time, value int) {
+func (m *Meter) Inc(t time.Time, value int) {
 	m.mu.Lock()
 	m.add(int(t.Unix()), value)
 	m.mu.Unlock()
+}
+
+func (m *Meter) Get(sec int) int {
+	m.mu.RLock()
+	v := m.get(sec)
+	m.mu.RUnlock()
+	return v
 }
 
 func (m *Meter) add(sec, value int) {
