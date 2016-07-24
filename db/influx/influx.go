@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/influxdata/influxdb/client/v2"
+	"h12.me/stats"
 )
 
 type DB struct {
@@ -68,23 +69,28 @@ func (d *DB) Close() error {
 	return d.c.Close()
 }
 
-/*
 func (d *DB) SaveStats(s *stats.S, from time.Time, du time.Duration, tags map[string]string) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
 	start := int(from.Unix())
 	end := int(from.Add(du).Unix())
-	for name, meter := range s.Meters {
+	for key, meter := range s.Meters {
+		name, meterTags, err := key.Decode()
+		if err != nil {
+			return err
+		}
+		for key, val := range tags {
+			meterTags[key] = val
+		}
 		for sec := start; sec < end; sec++ {
-			v := meter.Get(sec)
-			d.Insert(name, t, map[string]interface{}{"c": }, tags)
+			d.insert(name, time.Unix(int64(sec), 0), meterTags, map[string]interface{}{name: meter.Get(sec)})
 		}
 	}
+	return d.commit()
 }
-*/
 
-func (d *DB) insert(tableName string, t time.Time, fields map[string]interface{}, tags map[string]string) error {
+func (d *DB) insert(tableName string, t time.Time, tags map[string]string, fields map[string]interface{}) error {
 	p, err := client.NewPoint(tableName, tags, fields, t)
 	if err != nil {
 		return err
