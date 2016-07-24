@@ -2,6 +2,7 @@ package stats
 
 import (
 	"encoding/json"
+	"reflect"
 	"strconv"
 	"testing"
 	"time"
@@ -18,52 +19,53 @@ func TestMeterInc(t *testing.T) {
 
 	start := testTime
 	{
-		m.Inc(now)
-		m.Inc(now.Add(-time.Second))
-
-		m.Inc(now.Add(time.Second))
-		m.Inc(now.Add(time.Second))
-
-		m.Inc(now.Add(2 * time.Second))
-		m.Inc(now.Add(2 * time.Second))
-		m.Inc(now.Add(2 * time.Second))
-		expected := "[" + strconv.Itoa(int(start.Unix())) + ",1,2,3]"
-		if expected != m.String() {
-			t.Fatalf("expect %s got %s", expected, m.String())
+		m.Inc(now, 1)
+		m.Inc(now.Add(-time.Second), 1)
+		m.Inc(now.Add(time.Second), 2)
+		m.Inc(now.Add(2*time.Second), 3)
+		actual := getMeterValues(m, start, 3*time.Second)
+		expected := []int{1, 2, 3}
+		if !reflect.DeepEqual(actual, expected) {
+			t.Fatalf("expect %v got %v", actual, expected)
 		}
 	}
 
 	now = now.Add(3 * time.Second)
 	{
-		m.Inc(now)
-		m.Inc(now)
+		m.Inc(now, 2)
 		start = start.Add(time.Second)
-
-		expected := "[" + strconv.Itoa(int(start.Unix())) + ",2,3,2]"
-		if expected != m.String() {
-			t.Fatalf("expect %s got %s", expected, m.String())
+		actual := getMeterValues(m, start, 3*time.Second)
+		expected := []int{2, 3, 2}
+		if !reflect.DeepEqual(actual, expected) {
+			t.Fatalf("expect %v got %v", actual, expected)
 		}
 	}
 
 	now = now.Add(3 * time.Second)
 	{
-		m.Inc(now)
+		m.Inc(now, 1)
 		start = start.Add(3 * time.Second)
-
-		expected := "[" + strconv.Itoa(int(start.Unix())) + ",0,0,1]"
-		if expected != m.String() {
-			t.Fatalf("expect %s got %s", expected, m.String())
+		actual := getMeterValues(m, start, 3*time.Second)
+		expected := []int{0, 0, 1}
+		if !reflect.DeepEqual(actual, expected) {
+			t.Fatalf("expect %v got %v", actual, expected)
 		}
 	}
+}
+func getMeterValues(m *Meter, start time.Time, du time.Duration) (values []int) {
+	for i := int(start.Unix()); i < int(start.Add(du).Unix()); i++ {
+		values = append(values, m.Get(i))
+	}
+	return values
 }
 
 func TestMeterJSON(t *testing.T) {
 	m := NewMeter(3)
 	now := testTime
-	m.Add(now, 1)
-	m.Add(now.Add(time.Second), 2)
-	m.Add(now.Add(2*time.Second), 3)
-	m.Add(now.Add(3*time.Second), 4)
+	m.Inc(now, 1)
+	m.Inc(now.Add(time.Second), 2)
+	m.Inc(now.Add(2*time.Second), 3)
+	m.Inc(now.Add(3*time.Second), 4)
 
 	jsonBuf, err := json.Marshal(m)
 	if err != nil {
@@ -95,13 +97,13 @@ func TestMeterMerge(t *testing.T) {
 	now := testTime
 
 	m1 := NewMeter(2)
-	m1.Add(now, 1)
-	m1.Add(now.Add(time.Second), 2)
+	m1.Inc(now, 1)
+	m1.Inc(now.Add(time.Second), 2)
 
 	{
 		m2 := NewMeter(2)
-		m2.Add(now.Add(time.Second), 3)
-		m2.Add(now.Add(2*time.Second), 4)
+		m2.Inc(now.Add(time.Second), 3)
+		m2.Inc(now.Add(2*time.Second), 4)
 
 		m2.Merge(m1)
 		expectedM2 := `[` + unixStr(now.Add(time.Second)) + `,5,4]`
@@ -111,8 +113,8 @@ func TestMeterMerge(t *testing.T) {
 	}
 	{
 		m2 := NewMeter(2)
-		m2.Add(now.Add(-time.Second), 3)
-		m2.Add(now, 4)
+		m2.Inc(now.Add(-time.Second), 3)
+		m2.Inc(now, 4)
 
 		m2.Merge(m1)
 		expectedM2 := `[` + unixStr(now) + `,5,2]`
@@ -126,7 +128,7 @@ func BenchmarkMeter(b *testing.B) {
 	m := NewMeter(600)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		m.Inc(time.Now())
+		m.Inc(time.Now(), 1)
 	}
 }
 

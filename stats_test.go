@@ -10,8 +10,8 @@ import (
 
 func TestStatsMarshal(t *testing.T) {
 	s := New().SetBufSize(2)
-	s.Meter("test").Add(testTime, 1)
-	s.Meter("test").Add(testTime.Add(time.Second), 2)
+	s.Meter("test",nil).Inc(testTime, 1)
+	s.Meter("test",nil).Inc(testTime.Add(time.Second), 2)
 	jsonText := `{"meters":{"test":[` + strconv.Itoa(int(testTime.Unix())) + `,1,2]}}`
 
 	{
@@ -39,12 +39,12 @@ func TestStatsMarshal(t *testing.T) {
 
 func TestStatsMerge(t *testing.T) {
 	s1 := New().SetBufSize(2)
-	s1.Meter("test").Add(testTime, 1)
-	s1.Meter("test").Add(testTime.Add(time.Second), 2)
+	s1.Meter("test",nil).Inc(testTime, 1)
+	s1.Meter("test",nil).Inc(testTime.Add(time.Second), 2)
 
 	s2 := New().SetBufSize(2)
-	s2.Meter("test").Add(testTime, 3)
-	s2.Meter("test").Add(testTime.Add(time.Second), 4)
+	s2.Meter("test",nil).Inc(testTime, 3)
+	s2.Meter("test",nil).Inc(testTime.Add(time.Second), 4)
 
 	s2.Merge(s1)
 
