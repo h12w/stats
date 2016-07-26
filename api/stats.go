@@ -1,10 +1,8 @@
-package statsutil
+package api
 
 import (
+	"bytes"
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"log"
 	"net/http"
 	"path"
 
@@ -29,33 +27,29 @@ func pullHandler(s *stats.S) http.Handler {
 		}
 		defer resp.Body.Close()
 		otherStats := stats.New()
-		buf, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Fatal(err)
+		if err := json.NewDecoder(resp.Body).Decode(otherStats); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
-		fmt.Println(string(buf))
-		if err := json.Unmarshal(buf, otherStats); err != nil {
-			log.Fatal(err)
-		}
-		/*
-			if err := json.NewDecoder(resp.Body).Decode(otherStats); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		*/
-		fmt.Println(otherStats)
 		s.Merge(otherStats)
-		fmt.Println(s)
 	})
 }
 
 func varsHandler(s *stats.S) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		buf, err := json.Marshal(s)
+		buf, err := marshalJSON(s)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		w.Write(buf)
 	})
+}
+
+func marshalJSON(v interface{}) ([]byte, error) {
+	b, err := json.Marshal(v)
+	b = bytes.Replace(b, []byte(`\u003c`), []byte("<"), -1)
+	b = bytes.Replace(b, []byte(`\u003e`), []byte(">"), -1)
+	b = bytes.Replace(b, []byte(`\u0026`), []byte("&"), -1)
+	return b, err
 }

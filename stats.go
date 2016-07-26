@@ -26,23 +26,37 @@ func (s *S) Meter(name string, tags Tags) *Meter {
 }
 
 func (s *S) meter(key Key) *Meter {
-	s.mu.RLock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	defaultBufSize := s.defaultBufSize
 	m, ok := s.Meters[key]
-	s.mu.RUnlock()
 	if !ok {
 		m = NewMeter(defaultBufSize)
-		s.mu.Lock()
 		s.Meters[key] = m
-		s.mu.Unlock()
 	}
 	return m
 }
 
 func (s *S) Merge(o *S) {
-	o.mu.RLock()
+	o.mu.RLock() // lock o during reading
 	for key, meter := range o.Meters {
 		s.meter(key).Merge(meter)
+	}
+	o.mu.RUnlock()
+}
+
+func (s *S) MergeWithTags(o *S, tags Tags) {
+	o.mu.RLock() // lock o during reading
+	for key, meter := range o.Meters {
+		name, keyTags, err := key.Decode()
+		if err != nil {
+			s.meter(key).Merge(meter)
+			continue
+		}
+		for k, v := range tags {
+			keyTags[k] = v
+		}
+		s.meter(NewKey(name, keyTags)).Merge(meter)
 	}
 	o.mu.RUnlock()
 }

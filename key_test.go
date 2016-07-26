@@ -13,7 +13,7 @@ func TestKey(t *testing.T) {
 	}{
 		{
 			name: "a",
-			tags: nil,
+			tags: Tags{},
 			key:  "a",
 		},
 		{

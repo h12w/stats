@@ -22,7 +22,7 @@ func (key Key) Decode() (name string, tags Tags, err error) {
 	parts := strings.SplitN(string(key), " ", 2)
 	name = parts[0]
 	if len(parts) == 1 {
-		return name, nil, nil
+		return name, Tags{}, nil
 	}
 	tags, err = parseTags(parts[1])
 	if err != nil {
@@ -31,12 +31,12 @@ func (key Key) Decode() (name string, tags Tags, err error) {
 	return name, tags, nil
 }
 
-func (tags Tags) encode() string {
+func (tags Tags) encode() Key {
 	values := make(url.Values)
 	for key, value := range tags {
 		values.Set(key, value)
 	}
-	return values.Encode()
+	return Key(values.Encode())
 }
 
 func parseTags(s string) (Tags, error) {
