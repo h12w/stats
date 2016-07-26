@@ -3,6 +3,7 @@ package influx
 import (
 	"fmt"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -37,8 +38,9 @@ func Open(dataSourceName string) (*DB, error) {
 		}
 		query := uri.Query()
 		timeout, _ := time.ParseDuration(query.Get("timeout"))
+		addr := "http://" + uri.Host
 		c, err := client.NewHTTPClient(client.HTTPConfig{
-			Addr:      uri.Host,
+			Addr:      addr,
 			Username:  user,
 			Password:  password,
 			UserAgent: query.Get("ua"),
@@ -47,7 +49,14 @@ func Open(dataSourceName string) (*DB, error) {
 		if err != nil {
 			return nil, err
 		}
-		database := uri.Path
+		database := strings.TrimPrefix(uri.Path, `/`)
+		resp, err := c.Query(client.NewQuery("CREATE DATABASE "+database, "", ""))
+		if err != nil {
+			return nil, err
+		}
+		if resp.Error() != nil {
+			return nil, resp.Error()
+		}
 		bp, err := client.NewBatchPoints(client.BatchPointsConfig{
 			Precision: "ns",
 			Database:  database,
@@ -84,7 +93,11 @@ func (d *DB) SaveStats(s *stats.S, from time.Time, du time.Duration, tags map[st
 			meterTags[key] = val
 		}
 		for sec := start; sec < end; sec++ {
-			d.insert(name, time.Unix(int64(sec), 0), meterTags, map[string]interface{}{name: meter.Get(sec)})
+			measure := meter.Get(sec)
+			if measure == 0 {
+				continue
+			}
+			d.insert(name, time.Unix(int64(sec), 0), meterTags, map[string]interface{}{name: measure})
 		}
 	}
 	return d.commit()
