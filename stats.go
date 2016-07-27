@@ -45,13 +45,12 @@ func (s *S) Merge(o *S) {
 	o.mu.RUnlock()
 }
 
-func (s *S) MergeWithTags(o *S, tags Tags) {
+func (s *S) MergeWithTags(o *S, tags Tags) error {
 	o.mu.RLock() // lock o during reading
 	for key, meter := range o.Meters {
 		name, keyTags, err := key.Decode()
 		if err != nil {
-			s.meter(key).Merge(meter)
-			continue
+			return err
 		}
 		for k, v := range tags {
 			keyTags[k] = v
@@ -59,6 +58,7 @@ func (s *S) MergeWithTags(o *S, tags Tags) {
 		s.meter(NewKey(name, keyTags)).Merge(meter)
 	}
 	o.mu.RUnlock()
+	return nil
 }
 
 func (s *S) SetBufSize(defaultBufSize int) *S {

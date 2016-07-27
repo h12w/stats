@@ -24,8 +24,7 @@ func CollectStats(httpClient *http.Client, hosts []Host) (*stats.S, error) {
 			if err != nil {
 				return err
 			}
-			allStats.MergeWithTags(s, stats.Tags{"host": host.Tag})
-			return nil
+			return allStats.MergeWithTags(s, stats.Tags{"host": host.Tag})
 		})
 	}
 	return allStats, g.Wait()
