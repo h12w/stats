@@ -97,7 +97,7 @@ func (d *DB) SaveStats(s *stats.S, from time.Time, du time.Duration, tags map[st
 			if measure == 0 {
 				continue
 			}
-			d.insert(name, time.Unix(int64(sec), 0), meterTags, map[string]interface{}{name: measure})
+			d.insert(name, time.Unix(int64(sec), 0), meterTags, map[string]interface{}{"count": measure})
 		}
 	}
 	return d.commit()
