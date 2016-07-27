@@ -2,6 +2,7 @@ package statsutil
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"golang.org/x/sync/errgroup"
@@ -35,6 +36,9 @@ func (h *Host) get(client *http.Client) (*stats.S, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%d: %s", resp.StatusCode, h.URL)
+	}
 	s := stats.New()
 	return s, json.NewDecoder(resp.Body).Decode(s)
 }
