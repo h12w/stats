@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"path"
+	"time"
 
 	"h12.me/stats"
 )
@@ -31,7 +32,7 @@ func pullHandler(s *stats.S) http.Handler {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		s.Merge(otherStats)
+		s.Merge(otherStats, time.Now().Add(-time.Duration(stats.DefaultBufferSize)*time.Second))
 	})
 }
 

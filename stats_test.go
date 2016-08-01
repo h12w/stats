@@ -48,7 +48,7 @@ func TestStatsMerge(t *testing.T) {
 	s2.Meter("test", nil).Inc(testTime, 3)
 	s2.Meter("test", nil).Inc(testTime.Add(time.Second), 4)
 
-	s2.Merge(s1)
+	s2.Merge(s1, testTime)
 
 	actual := string(s2.String())
 	expected := `{"meters":{"test":[` + strconv.Itoa(int(testTime.Unix())) + `,4,6]}}`
@@ -65,7 +65,7 @@ func TestStatsMergeWithTags(t *testing.T) {
 
 	s2 := New().SetBufSize(2)
 
-	s2.MergeWithTags(s1, Tags{"host": "a"})
+	s2.MergeWithTags(s1, testTime, Tags{"host": "a"})
 
 	actual := string(s2.String())
 	expected := `{"meters":{"test host=a":[` + strconv.Itoa(int(testTime.Unix())) + `,1,2]}}`

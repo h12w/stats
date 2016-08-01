@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 	"h12.me/stats"
@@ -14,7 +15,8 @@ type Host struct {
 	Tag  string
 }
 
-func CollectStats(httpClient *http.Client, allStats *stats.S, hosts []Host) (*stats.S, error) {
+func CollectStats(httpClient *http.Client, hosts []Host, start time.Time) (*stats.S, error) {
+	allStats := stats.New()
 	var g errgroup.Group
 	for i := range hosts {
 		host := &hosts[i]
@@ -23,7 +25,7 @@ func CollectStats(httpClient *http.Client, allStats *stats.S, hosts []Host) (*st
 			if err != nil {
 				return err
 			}
-			return allStats.MergeWithTags(s, stats.Tags{"host": host.Tag})
+			return allStats.MergeWithTags(s, start, stats.Tags{"host": host.Tag})
 		})
 	}
 	return allStats, g.Wait()

@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+var DefaultBufferSize = 60
+
 // S is the container for all statistics
 type S struct {
 	Meters         map[Key]*Meter `json:"meters"`
@@ -17,36 +19,36 @@ type S struct {
 func New() *S {
 	return &S{
 		Meters:         make(map[Key]*Meter),
-		defaultBufSize: 60,
+		defaultBufSize: DefaultBufferSize,
 	}
 }
 
 // Meter gets or creates a meter by name
 func (s *S) Meter(name string, tags Tags) *Meter {
-	return s.meter(NewKey(name, tags))
+	return s.meter(NewKey(name, tags), time.Now())
 }
 
-func (s *S) meter(key Key) *Meter {
+func (s *S) meter(key Key, start time.Time) *Meter {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	defaultBufSize := s.defaultBufSize
 	m, ok := s.Meters[key]
 	if !ok {
-		m = NewMeter(time.Now(), defaultBufSize)
+		m = NewMeter(start, defaultBufSize)
 		s.Meters[key] = m
 	}
 	return m
 }
 
-func (s *S) Merge(o *S) {
+func (s *S) Merge(o *S, start time.Time) {
 	o.mu.RLock() // lock o during reading
 	for key, meter := range o.Meters {
-		s.meter(key).Merge(meter)
+		s.meter(key, start).Merge(meter)
 	}
 	o.mu.RUnlock()
 }
 
-func (s *S) MergeWithTags(o *S, tags Tags) error {
+func (s *S) MergeWithTags(o *S, start time.Time, tags Tags) error {
 	o.mu.RLock() // lock o during reading
 	for key, meter := range o.Meters {
 		name, keyTags, err := key.Decode()
@@ -56,7 +58,7 @@ func (s *S) MergeWithTags(o *S, tags Tags) error {
 		for k, v := range tags {
 			keyTags[k] = v
 		}
-		s.meter(NewKey(name, keyTags)).Merge(meter)
+		s.meter(NewKey(name, keyTags), start).Merge(meter)
 	}
 	o.mu.RUnlock()
 	return nil

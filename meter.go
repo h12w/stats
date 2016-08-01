@@ -23,6 +23,10 @@ func NewMeter(start time.Time, size int) *Meter {
 	}
 }
 
+func (m *Meter) StartTime() time.Time {
+	return time.Unix(int64(m.startSec), 0)
+}
+
 func (m *Meter) Inc(t time.Time, value int) {
 	m.mu.Lock()
 	m.add(int(t.Unix()), value)
