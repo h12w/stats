@@ -10,12 +10,11 @@ import (
 )
 
 type Host struct {
-	URL string `json:"url"`
-	Tag string `json:"tag"`
+	URLs []string
+	Tag  string
 }
 
-func CollectStats(httpClient *http.Client, hosts []Host) (*stats.S, error) {
-	allStats := stats.New()
+func CollectStats(httpClient *http.Client, allStats *stats.S, hosts []Host) (*stats.S, error) {
 	var g errgroup.Group
 	for i := range hosts {
 		host := &hosts[i]
@@ -29,14 +28,25 @@ func CollectStats(httpClient *http.Client, hosts []Host) (*stats.S, error) {
 	}
 	return allStats, g.Wait()
 }
+
 func (h *Host) get(client *http.Client) (*stats.S, error) {
-	resp, err := client.Get(h.URL)
+	var (
+		resp *http.Response
+		err  error
+	)
+	for _, uri := range h.URLs {
+		resp, err = client.Get(uri)
+		if err != nil {
+			continue
+		}
+		break
+	}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %v", err.Error(), h.URLs)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%d: %s", resp.StatusCode, h.URL)
+		return nil, fmt.Errorf("%d: %v", resp.StatusCode, h.URLs)
 	}
 	s := stats.New()
 	return s, json.NewDecoder(resp.Body).Decode(s)
