@@ -3,6 +3,7 @@ package stats
 import (
 	"encoding/json"
 	"sync"
+	"time"
 )
 
 // S is the container for all statistics
@@ -31,7 +32,7 @@ func (s *S) meter(key Key) *Meter {
 	defaultBufSize := s.defaultBufSize
 	m, ok := s.Meters[key]
 	if !ok {
-		m = NewMeter(defaultBufSize)
+		m = NewMeter(time.Now(), defaultBufSize)
 		s.Meters[key] = m
 	}
 	return m

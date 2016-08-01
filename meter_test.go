@@ -9,15 +9,15 @@ import (
 )
 
 var (
-	testTimeStr = "2006-01-02T03:04:05Z"
-	testTime, _ = time.Parse(testTimeStr, testTimeStr)
+//testTimeStr = "2006-01-02T03:04:05Z"
+//testTime, _ = time.Parse(testTimeStr, testTimeStr)
 )
 
 func TestMeterInc(t *testing.T) {
-	now := testTime
-	m := NewMeter(3)
+	now := time.Now()
+	m := NewMeter(now, 3)
 
-	start := testTime
+	start := now
 	{
 		m.Inc(now, 1)
 		m.Inc(now.Add(-time.Second), 1)
@@ -41,14 +41,14 @@ func TestMeterInc(t *testing.T) {
 		}
 	}
 
-	now = now.Add(3 * time.Second)
+	now = now.Add(10 * time.Second)
 	{
 		m.Inc(now, 1)
-		start = start.Add(3 * time.Second)
+		start = now.Add(-2 * time.Second)
 		actual := getMeterValues(m, start, 3*time.Second)
 		expected := []int{0, 0, 1}
 		if !reflect.DeepEqual(actual, expected) {
-			t.Fatalf("expect %v got %v", actual, expected)
+			t.Fatalf("expect %v got %v", expected, actual)
 		}
 	}
 }
@@ -60,8 +60,8 @@ func getMeterValues(m *Meter, start time.Time, du time.Duration) (values []int) 
 }
 
 func TestMeterJSON(t *testing.T) {
-	m := NewMeter(3)
-	now := testTime
+	now := time.Now()
+	m := NewMeter(now, 3)
 	m.Inc(now, 1)
 	m.Inc(now.Add(time.Second), 2)
 	m.Inc(now.Add(2*time.Second), 3)
@@ -73,13 +73,13 @@ func TestMeterJSON(t *testing.T) {
 	}
 	{
 		actual := string(jsonBuf)
-		expected := "[" + strconv.Itoa(int(testTime.Add(time.Second).Unix())) + `,2,3,4]`
+		expected := "[" + strconv.Itoa(int(now.Add(time.Second).Unix())) + `,2,3,4]`
 		if actual != expected {
 			t.Fatalf("expect \n%s\n but got\n%s", expected, actual)
 		}
 	}
 	{
-		m := NewMeter(3)
+		m := NewMeter(now, 3)
 		if err := json.Unmarshal(jsonBuf, &m); err != nil {
 			t.Fatal(err)
 		}
@@ -94,14 +94,14 @@ func TestMeterJSON(t *testing.T) {
 }
 
 func TestMeterMerge(t *testing.T) {
-	now := testTime
+	now := time.Now()
 
-	m1 := NewMeter(2)
+	m1 := NewMeter(now, 2)
 	m1.Inc(now, 1)
 	m1.Inc(now.Add(time.Second), 2)
 
 	{
-		m2 := NewMeter(2)
+		m2 := NewMeter(now, 2)
 		m2.Inc(now.Add(time.Second), 3)
 		m2.Inc(now.Add(2*time.Second), 4)
 
@@ -112,7 +112,7 @@ func TestMeterMerge(t *testing.T) {
 		}
 	}
 	{
-		m2 := NewMeter(2)
+		m2 := NewMeter(now, 2)
 		m2.Inc(now.Add(-time.Second), 3)
 		m2.Inc(now, 4)
 
@@ -125,7 +125,7 @@ func TestMeterMerge(t *testing.T) {
 }
 
 func BenchmarkMeter(b *testing.B) {
-	m := NewMeter(600)
+	m := NewMeter(time.Now(), 600)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		m.Inc(time.Now(), 1)

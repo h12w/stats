@@ -15,9 +15,11 @@ type Meter struct {
 	mu       sync.RWMutex
 }
 
-func NewMeter(bufSize int) *Meter {
+func NewMeter(start time.Time, size int) *Meter {
 	return &Meter{
-		a: make([]int, bufSize),
+		start:    0,
+		startSec: int(start.Unix()),
+		a:        make([]int, size),
 	}
 }
 
@@ -35,22 +37,23 @@ func (m *Meter) Get(sec int) int {
 }
 
 func (m *Meter) add(sec, value int) {
-	if m.startSec == 0 {
-		m.startSec = sec
+	if sec < m.startSec {
+		return
 	}
-	for sec-m.startSec >= len(m.a) {
+	// TRUE: sec >= m.startSec
+
+	for sec >= m.startSec+len(m.a) {
 		m.a[m.start] = 0
 		m.start++
+		m.startSec++
 		if m.start == len(m.a) {
 			m.start = 0
 		}
-		m.startSec++
 	}
-	offset := sec - m.startSec
-	if offset < 0 {
-		return // ignore data older than a circle
-	}
-	pos := m.start + offset
+	// TRUE: m.startSec <= sec && sec < m.startSec+len(m.a)
+	// TRUE: 0 <= sec-m.startSec && sec-m.startSec < len(m.a)
+
+	pos := m.start + (sec - m.startSec)
 	if pos >= len(m.a) {
 		pos -= len(m.a)
 	}
@@ -61,7 +64,7 @@ func (m *Meter) get(sec int) int {
 	if sec < m.startSec || sec >= m.startSec+len(m.a) {
 		return 0
 	}
-	pos := m.start + sec - m.startSec
+	pos := m.start + (sec - m.startSec)
 	if pos >= len(m.a) {
 		pos -= len(m.a)
 	}
@@ -108,10 +111,10 @@ func (m *Meter) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 	m.startSec = ints[0]
-	if len(m.a) >= len(ints)-1 {
-		copy(m.a, ints[1:])
-	} else {
-		m.a = ints[1:]
+	size := len(m.a)
+	m.a = ints[1:]
+	if len(m.a) < size {
+		m.a = append(m.a, make([]int, size-len(m.a))...)
 	}
 	return nil
 }

@@ -9,6 +9,7 @@ import (
 )
 
 func TestStatsMarshal(t *testing.T) {
+	testTime := time.Now()
 	s := New().SetBufSize(2)
 	s.Meter("test", nil).Inc(testTime, 1)
 	s.Meter("test", nil).Inc(testTime.Add(time.Second), 2)
@@ -38,6 +39,7 @@ func TestStatsMarshal(t *testing.T) {
 }
 
 func TestStatsMerge(t *testing.T) {
+	testTime := time.Now()
 	s1 := New().SetBufSize(2)
 	s1.Meter("test", nil).Inc(testTime, 1)
 	s1.Meter("test", nil).Inc(testTime.Add(time.Second), 2)
@@ -56,6 +58,7 @@ func TestStatsMerge(t *testing.T) {
 }
 
 func TestStatsMergeWithTags(t *testing.T) {
+	testTime := time.Now()
 	s1 := New().SetBufSize(2)
 	s1.Meter("test", nil).Inc(testTime, 1)
 	s1.Meter("test", nil).Inc(testTime.Add(time.Second), 2)
