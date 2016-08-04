@@ -11,8 +11,9 @@ import (
 )
 
 type Host struct {
-	URLs []string
-	Tag  string
+	URLs  []string
+	Tag   string
+	Delay time.Duration
 }
 
 func CollectStats(httpClient *http.Client, hosts []Host, start time.Time) (*stats.S, error) {
@@ -25,7 +26,7 @@ func CollectStats(httpClient *http.Client, hosts []Host, start time.Time) (*stat
 			if err != nil {
 				return err
 			}
-			return allStats.MergeWithTags(s, start, stats.Tags{"host": host.Tag})
+			return allStats.MergeWithTags(s, start.Add(-host.Delay), stats.Tags{"host": host.Tag})
 		})
 	}
 	return allStats, g.Wait()
