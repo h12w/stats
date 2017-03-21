@@ -67,7 +67,7 @@ func NewRingSketch(w uint, d uint, exp float64, offset, ringSize int) (*RingSket
 /*
 NewForCapacity16 returns a new Count-Min-Log Sketch with 16-bit registers optimized for a given max capacity and expected error rate
 */
-func NewForCapacity16(capacity uint64, e float64, offset, ringSize int) (*RingSketch, error) {
+func NewRingSketchWithCap(capacity uint64, e float64, offset, ringSize int) (*RingSketch, error) {
 	if !(e >= 0.001 && e < 1.0) {
 		return nil, errors.New("e needs to be >= 0.001 and < 1.0")
 	}
