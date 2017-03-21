@@ -153,6 +153,33 @@ func (cml *RingSketch) Query(e []byte, offset int) float64 {
 	return cml.value(c)
 }
 
+func (cml *RingSketch) QueryBatch(e []byte, start, end int) []float64 {
+	cs := make([]uint16, end-start)
+	for i := range cs {
+		cs[i] = uint16(math.MaxUint16)
+	}
+
+	hsum := farm.Hash64(e)
+	h1 := uint32(hsum & 0xffffffff)
+	h2 := uint32((hsum >> 32) & 0xffffffff)
+
+	for i := range cml.store {
+		saltedHash := uint((h1 + uint32(i)*h2))
+		sk := cml.store[i][(saltedHash % cml.w)]
+		for j := range cs {
+			offset := j + start
+			if v := sk.Get(offset); v < cs[j] {
+				cs[j] = v
+			}
+		}
+	}
+	counts := make([]float64, len(cs))
+	for i := range cs {
+		counts[i] = cml.value(cs[i])
+	}
+	return counts
+}
+
 var rnd = pcgr.Rand{
 	State: 0x0ddc0ffeebadf00d,
 	Inc:   0xcafebabe,
