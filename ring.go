@@ -6,8 +6,8 @@ type Ring16 struct {
 	offset int
 }
 
-func NewRing16(offset int, size int) *Ring16 {
-	return &Ring16{
+func NewRing16(offset int, size int) Ring16 {
+	return Ring16{
 		start:  0,
 		offset: offset,
 		a:      make([]uint16, size),
