@@ -38,21 +38,18 @@ import (
 Sketch is a Count-Min-Log Sketch 16-bit registers
 */
 type Sketch struct {
-	w   uint
-	d   uint
+	w   int
+	d   int
 	exp float64
 
-	store [][]uint16
+	store []uint16
 }
 
 /*
 NewSketch returns a new Count-Min-Log Sketch with 16-bit registers
 */
-func newSketch(w uint, d uint, exp float64) (*Sketch, error) {
-	store := make([][]uint16, d, d)
-	for i := uint(0); i < d; i++ {
-		store[i] = make([]uint16, w, w)
-	}
+func newSketch(w int, d int, exp float64) (*Sketch, error) {
+	store := make([]uint16, d*w)
 	return &Sketch{
 		w:     w,
 		d:     d,
@@ -75,14 +72,12 @@ func New(capacity int, e float64) (*Sketch, error) {
 	m := math.Ceil((float64(capacity) * math.Log(e)) / math.Log(1.0/(math.Pow(2.0, math.Log(2.0)))))
 	w := math.Ceil(math.Log(2.0) * m / float64(capacity))
 
-	return newSketch(uint(m/w), uint(w), 1.00026)
+	return newSketch(int(m/w), int(w), 1.00026)
 }
 
 func (s *Sketch) Reset() {
 	for i := range s.store {
-		for j := range s.store[i] {
-			s.store[i][j] = 0
-		}
+		s.store[i] = 0
 	}
 }
 
@@ -102,8 +97,8 @@ func (cml *Sketch) Inc(e []byte) {
 	h2 := uint32((hsum >> 32) & 0xffffffff)
 
 	for i := range sk {
-		saltedHash := uint((h1 + uint32(i)*h2))
-		if sk[i] = &cml.store[i][(saltedHash % cml.w)]; *sk[i] < c {
+		saltedHash := int((h1 + uint32(i)*h2))
+		if sk[i] = &cml.store[i*cml.w+(saltedHash%cml.w)]; *sk[i] < c {
 			c = *sk[i]
 		}
 	}
@@ -142,9 +137,9 @@ func (cml *Sketch) Get(e []byte) float64 {
 	h1 := uint32(hsum & 0xffffffff)
 	h2 := uint32((hsum >> 32) & 0xffffffff)
 
-	for i := range cml.store {
-		saltedHash := uint((h1 + uint32(i)*h2))
-		if sk := cml.store[i][(saltedHash % cml.w)]; sk < c {
+	for i := 0; i < cml.d; i++ {
+		saltedHash := int((h1 + uint32(i)*h2))
+		if sk := cml.store[i*cml.w+(saltedHash%cml.w)]; sk < c {
 			c = sk
 		}
 	}
