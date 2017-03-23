@@ -3,14 +3,11 @@ package stats
 import "testing"
 
 func TestSketch(t *testing.T) {
-	s, err := NewRingSketchWithCap(1000000, 0.001, 0, 24)
-	if err != nil {
-		t.Fatal(err)
-	}
+	s := NewRingCMLSketcher(24, 1000000, 0)
 	for i := 0; i < 50; i++ {
 		key := []byte("b")
-		s.Update(key, 0)
-		if cnt := int(s.Query(key, 0) + 0.5); cnt != i+1 {
+		s.Inc(0, key)
+		if cnt := int(s.Get(0, key) + 0.5); cnt != i+1 {
 			t.Fatal(cnt, i+1)
 		}
 	}

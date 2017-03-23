@@ -1,24 +1,31 @@
 package stats
 
-type Ring16 struct {
-	a      []uint16
-	start  int
-	offset int
-}
+type (
+	RingSketcher struct {
+		a      []Sketcher
+		start  int
+		offset int
+	}
+	Sketcher interface {
+		Get([]byte) float64
+		Inc([]byte)
+		Reset()
+	}
+)
 
-func NewRing16(offset int, size int) Ring16 {
-	return Ring16{
+func NewRingSketcher(offset int, a []Sketcher) *RingSketcher {
+	return &RingSketcher{
+		a:      a,
 		start:  0,
 		offset: offset,
-		a:      make([]uint16, size),
 	}
 }
 
-func (m *Ring16) Offset() int {
+func (m *RingSketcher) Offset() int {
 	return m.offset
 }
 
-func (m *Ring16) Get(offset int) uint16 {
+func (m *RingSketcher) Get(offset int, key []byte) float64 {
 	if offset < m.offset || offset >= m.offset+len(m.a) {
 		return 0
 	}
@@ -26,17 +33,17 @@ func (m *Ring16) Get(offset int) uint16 {
 	if pos >= len(m.a) {
 		pos -= len(m.a)
 	}
-	return m.a[pos]
+	return m.a[pos].Get(key)
 }
 
-func (m *Ring16) Set(offset int, value uint16) {
+func (m *RingSketcher) Inc(offset int, key []byte) {
 	if offset < m.offset {
 		return
 	}
 	// TRUE: offset >= m.offset
 
 	for offset >= m.offset+len(m.a) {
-		m.a[m.start] = 0
+		m.a[m.start].Reset()
 		m.start++
 		m.offset++
 		if m.start == len(m.a) {
@@ -52,5 +59,5 @@ func (m *Ring16) Set(offset int, value uint16) {
 	if pos >= len(m.a) {
 		pos -= len(m.a)
 	}
-	m.a[pos] = value
+	m.a[pos].Inc(key)
 }
