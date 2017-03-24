@@ -31,6 +31,8 @@ import (
 	"io"
 	"math"
 
+	"h12.me/stats/binary"
+
 	"github.com/dgryski/go-farm"
 	"github.com/dgryski/go-pcgr"
 )
@@ -163,22 +165,22 @@ func (s *Sketch) WriteTo(w io.Writer) (int64, error) {
 	var err error
 	var nn int
 	n := 0
-	nn, err = writeInt32(w, s.w)
+	nn, err = binary.WriteInt32(w, s.w)
 	if err != nil {
 		return int64(n), err
 	}
 	n += nn
-	nn, err = writeInt32(w, s.d)
+	nn, err = binary.WriteInt32(w, s.d)
 	if err != nil {
 		return int64(n), err
 	}
 	n += nn
-	nn, err = writeFloat64(w, s.exp)
+	nn, err = binary.WriteFloat64(w, s.exp)
 	if err != nil {
 		return int64(n), err
 	}
 	n += nn
-	nn, err = writeUint64Slice(w, s.store)
+	nn, err = binary.WriteUint16SliceSparse(w, s.store)
 	if err != nil {
 		return int64(n), err
 	}
@@ -190,123 +192,25 @@ func (s *Sketch) ReadFrom(r io.Reader) (int64, error) {
 	var err error
 	var nn int
 	n := 0
-	nn, err = readInt32(r, &s.w)
+	nn, err = binary.ReadInt32(r, &s.w)
 	if err != nil {
 		return int64(n), err
 	}
 	n += nn
-	nn, err = readInt32(r, &s.d)
+	nn, err = binary.ReadInt32(r, &s.d)
 	if err != nil {
 		return int64(n), err
 	}
 	n += nn
-	nn, err = readFloat64(r, &s.exp)
+	nn, err = binary.ReadFloat64(r, &s.exp)
 	if err != nil {
 		return int64(n), err
 	}
 	n += nn
-	nn, err = readUint64Slice(r, &s.store)
+	nn, err = binary.ReadUint16SliceSparse(r, &s.store)
 	if err != nil {
 		return int64(n), err
 	}
 	n += nn
 	return int64(n), nil
-}
-
-func writeUint64Slice(w io.Writer, s []uint16) (int, error) {
-	var err error
-	var nn int
-	n := 0
-	nn, err = writeInt64(w, int64(len(s)))
-	if err != nil {
-		return n, err
-	}
-	n += nn
-	for _, v := range s {
-		nn, err = writeUint16(w, v)
-		if err != nil {
-			return n, err
-		}
-		n += nn
-	}
-	return n, nil
-}
-
-func readUint64Slice(r io.Reader, s *[]uint16) (int, error) {
-	var err error
-	var nn int
-	n := 0
-	var size int64
-	nn, err = readInt64(r, &size)
-	if err != nil {
-		return n, err
-	}
-	n += nn
-	*s = make([]uint16, int(size))
-	for i := range *s {
-		nn, err = readUint16(r, &(*s)[i])
-		if err != nil {
-			return n, err
-		}
-		n += nn
-	}
-	return n, nil
-}
-
-func writeInt64(w io.Writer, i int64) (int, error) {
-	return w.Write([]byte{byte(i >> 56), byte(i >> 48), byte(i >> 40), byte(i >> 32), byte(i >> 24), byte(i >> 16), byte(i >> 8), byte(i)})
-}
-
-func readInt64(r io.Reader, i *int64) (int, error) {
-	var b [8]byte
-	n, err := io.ReadFull(r, b[:])
-	if err != nil {
-		return n, err
-	}
-	*i = int64(b[0])<<56 | int64(b[1])<<48 | int64(b[2])<<40 | int64(b[3])<<32 |
-		int64(b[4])<<24 | int64(b[5])<<16 | int64(b[6])<<8 | int64(b[7])
-	return n, nil
-}
-
-func writeInt32(w io.Writer, i int32) (int, error) {
-	return w.Write([]byte{byte(i >> 24), byte(i >> 16), byte(i >> 8), byte(i)})
-}
-
-func readInt32(r io.Reader, i *int32) (int, error) {
-	var b [4]byte
-	n, err := io.ReadFull(r, b[:])
-	if err != nil {
-		return n, err
-	}
-	*i = int32(b[0])<<24 | int32(b[1])<<16 | int32(b[2])<<8 | int32(b[3])
-	return n, nil
-}
-
-func writeFloat64(w io.Writer, i float64) (int, error) {
-	return w.Write([]byte{byte(uint64(i) >> 56), byte(uint64(i) >> 48), byte(uint64(i) >> 40), byte(uint64(i) >> 32), byte(uint64(i) >> 24), byte(uint64(i) >> 16), byte(uint64(i) >> 8), byte(uint64(i))})
-}
-
-func readFloat64(r io.Reader, i *float64) (int, error) {
-	var b [8]byte
-	n, err := io.ReadFull(r, b[:])
-	if err != nil {
-		return n, err
-	}
-	*i = float64(uint64(b[0])<<56 | uint64(b[1])<<48 | uint64(b[2])<<40 | uint64(b[3])<<32 |
-		uint64(b[4])<<24 | uint64(b[5])<<16 | uint64(b[6])<<8 | uint64(b[7]))
-	return n, nil
-}
-
-func writeUint16(w io.Writer, i uint16) (int, error) {
-	return w.Write([]byte{byte(i >> 8), byte(i)})
-}
-
-func readUint16(r io.Reader, i *uint16) (int, error) {
-	var b [2]byte
-	n, err := io.ReadFull(r, b[:])
-	if err != nil {
-		return n, err
-	}
-	*i = uint16(b[0])<<8 | uint16(b[1])
-	return n, nil
 }

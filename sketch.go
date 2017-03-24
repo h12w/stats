@@ -2,7 +2,7 @@ package stats
 
 import "h12.me/stats/internal/cml"
 
-func NewRingCMLSketcher(ringSize int, elemCap int, startOffset int) *RingSketcher {
+func NewRingCMLSketcher(ringSize int, elemCap int, startOffset int64) *RingSketcher {
 	a := make([]Sketcher, ringSize)
 	for i := range a {
 		var err error
