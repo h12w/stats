@@ -110,6 +110,43 @@ Return:
 	return n, nil
 }
 
+func WriteString(w io.Writer, s string) (int, error) {
+	var err error
+	var nn int
+	n := 0
+	nn, err = WriteInt64(w, int64(len(s)))
+	n += nn
+	if err != nil {
+		return n, err
+	}
+	nn, err = w.Write([]byte(s))
+	n += nn
+	if err != nil {
+		return n, err
+	}
+	return n, nil
+}
+
+func ReadString(r io.Reader, s *string) (int, error) {
+	var err error
+	var nn int
+	n := 0
+	var size int64
+	nn, err = ReadInt64(r, &size)
+	n += nn
+	if err != nil {
+		return n, err
+	}
+	buf := make([]byte, int(size))
+	nn, err = io.ReadFull(r, buf)
+	n += nn
+	if err != nil {
+		return n, err
+	}
+	*s = string(buf)
+	return n, nil
+}
+
 func WriteUint16Slice(w io.Writer, s []uint16) (int, error) {
 	var err error
 	var nn int
@@ -221,5 +258,19 @@ func ReadUint16(r io.Reader, i *uint16) (int, error) {
 		return n, err
 	}
 	*i = uint16(b[0])<<8 | uint16(b[1])
+	return n, nil
+}
+
+func WriteUint8(w io.Writer, i uint8) (int, error) {
+	return w.Write([]uint8{i})
+}
+
+func ReadUint8(r io.Reader, i *uint8) (int, error) {
+	var b [1]byte
+	n, err := io.ReadFull(r, b[:])
+	if err != nil {
+		return n, err
+	}
+	*i = b[0]
 	return n, nil
 }

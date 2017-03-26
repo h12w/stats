@@ -22,6 +22,9 @@ type (
 )
 
 func NewRingSketcher(offset int64, a []Sketcher) *RingSketcher {
+	if len(a) < 1 {
+		panic("must have at least 1 sketcher")
+	}
 	return &RingSketcher{
 		start:  0,
 		offset: offset,

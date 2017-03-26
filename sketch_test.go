@@ -1,12 +1,25 @@
 package stats
 
-import "testing"
-import "os"
-import "bufio"
-import "h12.me/stats/internal/cml"
+import (
+	"bufio"
+	"encoding/gob"
+	"fmt"
+	"log"
+	"math/rand"
+	"os"
+	"testing"
+	"time"
+
+	"h12.me/gspec/util"
+	"h12.me/stats/internal/cml"
+)
 
 func TestSketch(t *testing.T) {
-	s := NewRingCMLSketcher(24, 1000000, 0)
+	testSketch(t, NewCMLRingSketcher(24, 1000000, 0), func() Sketcher { return &cml.Sketch{} })
+	testSketch(t, NewMapRingSketcher(2, 1000000, 0), func() Sketcher { return &Uint8MapSketcher{} })
+}
+
+func testSketch(t *testing.T, s *RingSketcher, newSketch func() Sketcher) {
 	key := []byte("b")
 	for i := 0; i < 50; i++ {
 		s.Inc(0, key)
@@ -15,7 +28,7 @@ func TestSketch(t *testing.T) {
 		}
 	}
 	{
-		f, err := os.Create("ring_cml_sketch.bin")
+		f, err := os.Create("ring_sketch.bin")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -27,12 +40,12 @@ func TestSketch(t *testing.T) {
 		f.Close()
 	}
 	{
-		f, err := os.Open("ring_cml_sketch.bin")
+		f, err := os.Open("ring_sketch.bin")
 		if err != nil {
 			t.Fatal(err)
 		}
 		buf := bufio.NewReader(f)
-		if _, err := s.ReadFrom(buf, func() Sketcher { return &cml.Sketch{} }); err != nil {
+		if _, err := s.ReadFrom(buf, newSketch); err != nil {
 			t.Fatal(err)
 		}
 		f.Close()
@@ -41,4 +54,28 @@ func TestSketch(t *testing.T) {
 		t.Fatal(cnt, 50)
 	}
 
+}
+
+func TestMapSize(t *testing.T) {
+	if testing.Short() {
+		return
+	}
+	fmt.Println(util.RandString(61))
+	before := util.MemAlloc()
+	m := make(map[string]uint8)
+	for i := 0; i < 1000*1000; i++ {
+		m[util.RandString(61)] = uint8(rand.Intn(255))
+	}
+	fmt.Println(len(m))
+	fmt.Println((float64(util.MemAlloc()-before) / 1024 / 1024))
+	f, err := os.Create("test.bin")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+	start := time.Now()
+	if err := gob.NewEncoder(f).Encode(m); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(time.Since(start))
 }
