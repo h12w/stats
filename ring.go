@@ -8,9 +8,10 @@ import (
 
 type (
 	RingSketcher struct {
-		start  int64
-		offset int64
-		a      []Sketcher
+		start       int64
+		offset      int64
+		a           []Sketcher
+		newSketcher func() Sketcher
 	}
 	Sketcher interface {
 		Get([]byte) float64
@@ -21,14 +22,15 @@ type (
 	}
 )
 
-func NewRingSketcher(offset int64, a []Sketcher) *RingSketcher {
+func NewRingSketcher(offset int64, a []Sketcher, newSketcher func() Sketcher) *RingSketcher {
 	if len(a) < 1 {
 		panic("must have at least 1 sketcher")
 	}
 	return &RingSketcher{
-		start:  0,
-		offset: offset,
-		a:      a,
+		start:       0,
+		offset:      offset,
+		a:           a,
+		newSketcher: newSketcher,
 	}
 }
 
@@ -102,7 +104,7 @@ func (s *RingSketcher) WriteTo(w io.Writer) (int64, error) {
 	return int64(n), nil
 }
 
-func (s *RingSketcher) ReadFrom(r io.Reader, newSketcher func() Sketcher) (int64, error) {
+func (s *RingSketcher) ReadFrom(r io.Reader) (int64, error) {
 	var err error
 	var nn int
 	n := 0
@@ -124,7 +126,7 @@ func (s *RingSketcher) ReadFrom(r io.Reader, newSketcher func() Sketcher) (int64
 	n += nn
 	s.a = make([]Sketcher, int(size))
 	for i := range s.a {
-		s.a[i] = newSketcher()
+		s.a[i] = s.newSketcher()
 		nn, err := s.a[i].ReadFrom(r)
 		if err != nil {
 			return int64(n), err

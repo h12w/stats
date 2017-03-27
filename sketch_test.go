@@ -11,15 +11,14 @@ import (
 	"time"
 
 	"h12.me/gspec/util"
-	"h12.me/stats/internal/cml"
 )
 
 func TestSketch(t *testing.T) {
-	testSketch(t, NewCMLRingSketcher(24, 1000000, 0), func() Sketcher { return &cml.Sketch{} })
-	testSketch(t, NewMapRingSketcher(2, 1000000, 0), func() Sketcher { return &Uint8MapSketcher{} })
+	testSketch(t, NewCMLRingSketcher(24, 1000000, 0))
+	testSketch(t, NewMapRingSketcher(2, 1000000, 0))
 }
 
-func testSketch(t *testing.T, s *RingSketcher, newSketch func() Sketcher) {
+func testSketch(t *testing.T, s *RingSketcher) {
 	key := []byte("b")
 	for i := 0; i < 50; i++ {
 		s.Inc(0, key)
@@ -45,7 +44,7 @@ func testSketch(t *testing.T, s *RingSketcher, newSketch func() Sketcher) {
 			t.Fatal(err)
 		}
 		buf := bufio.NewReader(f)
-		if _, err := s.ReadFrom(buf, newSketch); err != nil {
+		if _, err := s.ReadFrom(buf); err != nil {
 			t.Fatal(err)
 		}
 		f.Close()

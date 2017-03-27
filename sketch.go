@@ -18,7 +18,7 @@ func NewCMLRingSketcher(ringSize int, elemCap int, startOffset int64) *RingSketc
 			panic(err)
 		}
 	}
-	return NewRingSketcher(startOffset, a)
+	return NewRingSketcher(startOffset, a, func() Sketcher { return &cml.Sketch{} })
 }
 
 func NewMapRingSketcher(ringSize int, elemCap int, startOffset int64) *RingSketcher {
@@ -33,7 +33,7 @@ func NewMapRingSketcher(ringSize int, elemCap int, startOffset int64) *RingSketc
 			panic(err)
 		}
 	}
-	return NewRingSketcher(startOffset, a)
+	return NewRingSketcher(startOffset, a, func() Sketcher { return &Uint8MapSketcher{} })
 }
 
 type Uint8MapSketcher struct {
