@@ -3,7 +3,7 @@ package stats
 import (
 	"io"
 
-	"h12.me/stats/binary"
+	"h12.io/stats/binary"
 )
 
 type (

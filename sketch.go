@@ -5,8 +5,8 @@ import (
 
 	"math"
 
-	"h12.me/stats/binary"
-	"h12.me/stats/internal/cml"
+	"h12.io/stats/binary"
+	"h12.io/stats/internal/cml"
 )
 
 func NewCMLRingSketcher(ringSize int, elemCap int, startOffset int64) *RingSketcher {

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"h12.me/gspec/util"
+	"h12.io/gspec/util"
 )
 
 func TestSketch(t *testing.T) {

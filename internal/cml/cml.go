@@ -31,7 +31,7 @@ import (
 	"io"
 	"math"
 
-	"h12.me/stats/binary"
+	"h12.io/stats/binary"
 
 	"github.com/dgryski/go-farm"
 	"github.com/dgryski/go-pcgr"

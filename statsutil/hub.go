@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"golang.org/x/sync/errgroup"
-	"h12.me/stats"
+	"h12.io/stats"
 )
 
 type Host struct {

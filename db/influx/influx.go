@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/influxdata/influxdb/client/v2"
-	"h12.me/stats"
+	"h12.io/stats"
 )
 
 type DB struct {
